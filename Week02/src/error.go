@@ -63,10 +63,5 @@ func dbConn() (db *sql.DB, err error) {
 	dbPass := "gogogo123"
 	addr := "127.0.0.1:13306"
 	dbName := "gogogo_db"
-	//"user:password@tcp(127.0.0.1:3306)/hello"
-	db, err = sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp("+addr+")/"+dbName)
-	if err != nil {
-		return
-	}
-	return db, nil
+	return sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp("+addr+")/"+dbName)
 }
