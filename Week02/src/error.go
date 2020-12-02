@@ -9,7 +9,9 @@ import (
 )
 
 var RepositoryError = errors.New("数据资源错误！")
-var DataNotFound = errors.New("无数据！")
+var DataNotFound = errors.New("无此id用户数据！")
+
+var InvalidParam = errors.New("非法参数！")
 
 type User struct {
 	Id   int64
@@ -17,14 +19,19 @@ type User struct {
 }
 
 func main() {
-	user, err := biz(2)
+	user, err := biz(3)
 	if err != nil {
-		log.Fatalf("find user failed: %+v", err)
+		log.Fatalf("查询用户失败，原因: %+v", err)
+		//err = errors.Unwrap(err)
+		//log.Fatalf("查询用户失败，原因: %+v", err)
 	}
 	fmt.Println(user)
 }
 
 func biz(id int64) (user *User, err error) {
+	if id <= 0 {
+		return nil, errors.Wrap(InvalidParam, fmt.Sprintf("id不能小于1，当前值：%d", id))
+	}
 	return FindById(id)
 }
 
@@ -42,7 +49,7 @@ func FindById(id int64) (user *User, err error) {
 	err = stmt.QueryRow(id).Scan(&user.Id, &user.Name)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			err = errors.Wrap(DataNotFound, "无此id用户数据！")
+			err = errors.Wrap(DataNotFound, fmt.Sprintf("id=%d", id))
 		}
 		return
 	}
