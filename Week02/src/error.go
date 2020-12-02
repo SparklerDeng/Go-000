@@ -2,13 +2,14 @@ package main
 
 import (
 	"database/sql"
-	gerrors "errors"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/pkg/errors"
 	"log"
 )
 
-var DataNotFound = gerrors.New("record not found")
+var RepositoryError = errors.New("数据资源错误！")
+var DataNotFound = errors.New("无数据！")
 
 type User struct {
 	Id   int64
@@ -16,7 +17,7 @@ type User struct {
 }
 
 func main() {
-	user, err := biz(1)
+	user, err := biz(2)
 	if err != nil {
 		log.Fatalf("find user failed: %+v", err)
 	}
@@ -29,14 +30,20 @@ func biz(id int64) (user *User, err error) {
 
 func FindById(id int64) (user *User, err error) {
 	db, err := dbConn()
-	stmt, err := db.Prepare("select * from go_user where id=?")
 	if err != nil {
-		return user, errors.Wrap(err, "查询用户失败！")
+		err = errors.Wrap(RepositoryError, "连接数据资源失败！")
+		return
 	}
-	err = stmt.QueryRow(id).Scan(&user)
-
-	if err != nil && gerrors.Is(err, sql.ErrNoRows) {
-		err = errors.Wrap(DataNotFound, "query failed")
+	stmt, err := db.Prepare("select id, name from go_user where id=?")
+	if err != nil {
+		return user, errors.Wrap(RepositoryError, "查询数据资源失败！")
+	}
+	user = &User{}
+	err = stmt.QueryRow(id).Scan(&user.Id, &user.Name)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			err = errors.Wrap(DataNotFound, "无此id用户数据！")
+		}
 		return
 	}
 	defer db.Close()
@@ -45,12 +52,14 @@ func FindById(id int64) (user *User, err error) {
 
 func dbConn() (db *sql.DB, err error) {
 	dbDriver := "mysql"
-	dbUser := "root"
-	dbPass := "root"
-	dbName := "goblog"
-	db, err = sql.Open(dbDriver, dbUser+":"+dbPass+"@/"+dbName)
+	dbUser := "gogogo"
+	dbPass := "gogogo123"
+	addr := "127.0.0.1:13306"
+	dbName := "gogogo_db"
+	//"user:password@tcp(127.0.0.1:3306)/hello"
+	db, err = sql.Open(dbDriver, dbUser+":"+dbPass+"@tcp("+addr+")/"+dbName)
 	if err != nil {
-		return db, errors.Wrap(err, "连续数据库失败！")
+		return
 	}
 	return db, nil
 }
